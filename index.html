@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detector de Vocales en Tiempo Real</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 1200px;
+        width: 100%;
+      }
+
+      h1 {
+        text-align: center;
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 40px;
+        font-size: 1.1em;
+      }
+
+      .status-bar {
+        background: #f5f5f5;
+        padding: 15px 25px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+        font-size: 16px;
+        color: #333;
+      }
+
+      .status-bar.ready {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      .status-bar.error {
+        background: #ffebee;
+        color: #c62828;
+      }
+
+      .status-bar.detecting {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+
+      .control-panel {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 40px;
+      }
+
+      button {
+        padding: 18px 40px;
+        font-size: 18px;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: bold;
+        text-transform: uppercase;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+        color: white;
+      }
+
+      .btn-danger:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .result-section {
+        text-align: center;
+        margin: 40px 0;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: #f9f9f9;
+        border-radius: 15px;
+        padding: 30px;
+      }
+
+      .vocal-display {
+        font-size: 140px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.4s ease;
+        line-height: 1;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .confidence {
+        font-size: 20px;
+        color: #666;
+        margin-top: 15px;
+        font-weight: 500;
+      }
+
+      .status-text {
+        font-size: 18px;
+        color: #999;
+      }
+
+      .charts-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+        margin-top: 40px;
+      }
+
+      @media (max-width: 768px) {
+        .charts-container {
+          grid-template-columns: 1fr;
+        }
+
+        .vocal-display {
+          font-size: 100px;
+        }
+
+        h1 {
+          font-size: 2em;
+        }
+      }
+
+      .chart-wrapper {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .chart-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      canvas {
+        width: 100%;
+        height: 280px;
+        border-radius: 10px;
+      }
+
+      .pulse {
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Detector de Vocales en Tiempo Real</h1>
+      <div class="subtitle">Sistema de Clasificación SVM con FFT y MFCC</div>
+
+      <div id="statusBar" class="status-bar">Verificando modelo...</div>
+
+      <div class="control-panel">
+        <button id="startBtn" class="btn-primary" disabled>
+          Iniciar Detección
+        </button>
+      </div>
+
+      <div class="result-section" id="resultSection">
+        <div class="status-text">Sistema inactivo</div>
+      </div>
+
+      <div class="charts-container">
+        <div class="chart-wrapper">
+          <div class="chart-title">Forma de Onda (Tiempo Real)</div>
+          <canvas id="waveformCanvas"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <div class="chart-title">Espectro de Frecuencia (FFT)</div>
+          <canvas id="spectrumCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let isDetecting = false;
+      let audioContext;
+      let analyser;
+      let microphone;
+      let processor;
+      let animationId;
+      let audioChunks = [];
+      let recordingStartTime;
+      let mediaStream;
+
+      const waveformCanvas = document.getElementById("waveformCanvas");
+      const spectrumCanvas = document.getElementById("spectrumCanvas");
+      const waveCtx = waveformCanvas.getContext("2d");
+      const specCtx = spectrumCanvas.getContext("2d");
+
+      function resizeCanvas() {
+        waveformCanvas.width = waveformCanvas.offsetWidth;
+        waveformCanvas.height = waveformCanvas.offsetHeight;
+        spectrumCanvas.width = spectrumCanvas.offsetWidth;
+        spectrumCanvas.height = spectrumCanvas.offsetHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      async function checkModelStatus() {
+        try {
+          const response = await fetch("/status");
+          const data = await response.json();
+
+          const statusBar = document.getElementById("statusBar");
+          const startBtn = document.getElementById("startBtn");
+
+          if (data.is_trained) {
+            statusBar.textContent = "Sistema listo para detectar";
+            statusBar.className = "status-bar ready";
+            startBtn.disabled = false;
+          } else {
+            statusBar.textContent = "Error: Archivos del modelo no encontrados";
+            statusBar.className = "status-bar error";
+            startBtn.disabled = true;
+          }
+        } catch (error) {
+          document.getElementById("statusBar").textContent =
+            "Error de conexión con el servidor";
+          document.getElementById("statusBar").className = "status-bar error";
+        }
+      }
+
+      checkModelStatus();
+
+      document
+        .getElementById("startBtn")
+        .addEventListener("click", async () => {
+          if (!isDetecting) {
+            await startRealTimeDetection();
+          } else {
+            stopRealTimeDetection();
+          }
+        });
+
+      async function startRealTimeDetection() {
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              sampleRate: 16000,
+              channelCount: 1,
+              echoCancellation: true,
+              noiseSuppression: true,
+            },
+          });
+
+          audioContext = new (window.AudioContext || window.webkitAudioContext)(
+            {
+              sampleRate: 16000,
+            }
+          );
+
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 2048;
+          analyser.smoothingTimeConstant = 0.8;
+
+          microphone = audioContext.createMediaStreamSource(mediaStream);
+          processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+          microphone.connect(analyser);
+          analyser.connect(processor);
+          processor.connect(audioContext.destination);
+
+          audioChunks = [];
+          recordingStartTime = Date.now();
+
+          processor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+            audioChunks.push(new Float32Array(inputData));
+
+            if (Date.now() - recordingStartTime > 600) {
+              sendAudioForAnalysis();
+              audioChunks = [];
+              recordingStartTime = Date.now();
+            }
+          };
+
+          isDetecting = true;
+          document.getElementById("startBtn").textContent = "Detener Detección";
+          document.getElementById("startBtn").className = "btn-danger";
+          document.getElementById("statusBar").textContent =
+            "Detectando en tiempo real...";
+          document.getElementById("statusBar").className =
+            "status-bar detecting pulse";
+          document.getElementById("resultSection").innerHTML =
+            '<div class="status-text pulse">Escuchando...</div>';
+
+          visualize();
+        } catch (error) {
+          document.getElementById("statusBar").textContent =
+            "Error al acceder al micrófono";
+          document.getElementById("statusBar").className = "status-bar error";
+        }
+      }
+
+      function stopRealTimeDetection() {
+        if (processor) processor.disconnect();
+        if (microphone) microphone.disconnect();
+        if (analyser) analyser.disconnect();
+        if (audioContext) audioContext.close();
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+        }
+
+        cancelAnimationFrame(animationId);
+
+        isDetecting = false;
+        document.getElementById("startBtn").textContent = "Iniciar Detección";
+        document.getElementById("startBtn").className = "btn-primary";
+        document.getElementById("statusBar").textContent =
+          "Sistema listo para detectar";
+        document.getElementById("statusBar").className = "status-bar ready";
+        document.getElementById("resultSection").innerHTML =
+          '<div class="status-text">Sistema inactivo</div>';
+      }
+
+      function visualize() {
+        animationId = requestAnimationFrame(visualize);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        analyser.getByteTimeDomainData(dataArray);
+        waveCtx.fillStyle = "#f8f8f8";
+        waveCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        waveCtx.lineWidth = 2.5;
+        waveCtx.strokeStyle = "#667eea";
+        waveCtx.beginPath();
+
+        const sliceWidth = waveformCanvas.width / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = (v * waveformCanvas.height) / 2;
+
+          if (i === 0) {
+            waveCtx.moveTo(x, y);
+          } else {
+            waveCtx.lineTo(x, y);
+          }
+          x += sliceWidth;
+        }
+        waveCtx.stroke();
+
+        analyser.getByteFrequencyData(dataArray);
+        specCtx.fillStyle = "#f8f8f8";
+        specCtx.fillRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+
+        const barWidth = (spectrumCanvas.width / bufferLength) * 2.5;
+        let barHeight;
+        x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          barHeight = (dataArray[i] / 255) * spectrumCanvas.height;
+
+          const gradient = specCtx.createLinearGradient(
+            0,
+            spectrumCanvas.height - barHeight,
+            0,
+            spectrumCanvas.height
+          );
+          gradient.addColorStop(0, "#764ba2");
+          gradient.addColorStop(1, "#667eea");
+          specCtx.fillStyle = gradient;
+
+          specCtx.fillRect(
+            x,
+            spectrumCanvas.height - barHeight,
+            barWidth,
+            barHeight
+          );
+          x += barWidth + 1;
+        }
+      }
+
+      async function sendAudioForAnalysis() {
+        if (audioChunks.length === 0) return;
+
+        let totalLength = 0;
+        audioChunks.forEach((chunk) => (totalLength += chunk.length));
+
+        const audioData = new Float32Array(totalLength);
+        let offset = 0;
+        audioChunks.forEach((chunk) => {
+          audioData.set(chunk, offset);
+          offset += chunk.length;
+        });
+
+        const wavBlob = floatTo16BitPCM(audioData);
+        const formData = new FormData();
+        formData.append("audio", wavBlob, "recording.wav");
+
+        try {
+          const response = await fetch("/analyze", {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (result.vocal) {
+            const confidence = (result.confidence * 100).toFixed(1);
+            document.getElementById("resultSection").innerHTML = `
+              <div class="vocal-display">${result.vocal.toUpperCase()}</div>
+              <div class="confidence">Confianza: ${confidence}%</div>
+            `;
+          }
+        } catch (error) {
+          console.error("Error en análisis:", error);
+        }
+      }
+
+      function floatTo16BitPCM(float32Array) {
+        const buffer = new ArrayBuffer(float32Array.length * 2);
+        const view = new DataView(buffer);
+        let offset = 0;
+        for (let i = 0; i < float32Array.length; i++, offset += 2) {
+          let s = Math.max(-1, Math.min(1, float32Array[i]));
+          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+        return new Blob([buffer], { type: "audio/wav" });
+      }
+    </script>
+  </body>
+</html>
