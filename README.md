@@ -17,6 +17,7 @@ Cada etapa transforma progresivamente la información hasta pasar de una onda so
 La información del usuario se extrae como audio crudo o flujo de bytes, no almacena WAVs. 
 El audio crudo no es adecuado para clasificación directa.  
 Por ello, cada segmento de voz se transforma en un **vector numérico de 56 características**, que funciona como la **huella acústica** de una vocal.
+
 ---
 
 ### 2.1 Dominio de Frecuencia (FFT)
