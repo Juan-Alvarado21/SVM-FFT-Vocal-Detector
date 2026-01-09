@@ -1,4 +1,4 @@
-# SVM-FFT-Vocal-Detector
+# SVM-FFT-Vowel-Detector
 
 
 Cada etapa transforma progresivamente la información hasta pasar de una onda sonora a una decisión de clase.
