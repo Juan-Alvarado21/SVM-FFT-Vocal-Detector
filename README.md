@@ -81,17 +81,25 @@ Aqui se probó su funcionamiento con una muestra pequeña.
 
 ---
 
-## 5. Datos de Entrenamiento
+## Observaciones Importantes ### Sensibilidad Acústica 
+**Vocal O:** - Requiere pronunciación **muy suave** para ser reconocida correctamente - Razón: Su espectro de frecuencias se traslapa con la U - Solución: Hablar en tono bajo y relajado 
+**Vocal I:** - Debe pronunciarse **casi cantada** en registro **agudo** - Razón: Necesita formantes altos (F2 > 2000 Hz) para diferenciarse de E - Solución: Elevar el tono como si preguntaras "¿sí?" 
+**Vocales E y U:** - Generalmente bien detectadas con pronunciación natural 
+**Vocal A:** - La más fácil de detectar (formantes bien separados)
+
+---
+
+## 6. Datos de Entrenamiento
 
 El modelo se entrena con un conjunto de datos almacenado en `training_data.json`.
-
-## Observaciones Importantes ### Sensibilidad Acústica **Vocal O:** - Requiere pronunciación **muy suave** para ser reconocida correctamente - Razón: Su espectro de frecuencias se traslapa con la U - Solución: Hablar en tono bajo y relajado **Vocal I:** - Debe pronunciarse **casi cantada** en registro **agudo** - Razón: Necesita formantes altos (F2 > 2000 Hz) para diferenciarse de E - Solución: Elevar el tono como si preguntaras "¿sí?" **Vocales E y U:** - Generalmente bien detectadas con pronunciación natural **Vocal A:** - La más fácil de detectar (formantes bien separados)
 
 ```json
 {
   "samples": [[feat1, feat2, ..., feat56], ...],
   "labels": ["a", "e", "i", "o", "u", ...]
 }
+
+
 
 ---
 
